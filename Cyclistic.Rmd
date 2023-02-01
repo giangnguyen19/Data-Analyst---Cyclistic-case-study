@@ -1,0 +1,256 @@
+---
+title: "Google Data Analytics case study: Cyclistic bike-share analysis "
+output: pdf_document
+author: "Giang Nguyen"
+date: "2023-01-26"
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This is my analysis of the case study of the **Google Data Analytics** certificate program. I'll be performing my process of data cleaning, analyzing, and visualizing data, then summarizing the data and delivering insights to solve business questions.
+
+# Scenario
+
+You are a junior data analyst working in the marketing analyst team at Cyclistic, a bike-share company in Chicago. The director
+of marketing believes the company’s future success depends on maximizing the number of annual memberships. Therefore,
+your team wants to understand how casual riders and annual members use Cyclistic bikes differently. From these insights,
+your team will design a new marketing strategy to convert casual riders into annual members. But first, Cyclistic executives
+must approve your recommendations, so they must be backed up with compelling data insights and professional data
+visualizations.
+
+
+# Characters and teams
+
+* **Cyclistic:** A bike-share program that features more than 5,800 bicycles and 600 docking stations. Cyclistic sets itself
+apart by also offering reclining bikes, hand tricycles, and cargo bikes, making bike-share more inclusive to people with
+disabilities and riders who can’t use a standard two-wheeled bike. The majority of riders opt for traditional bikes; about
+8% of riders use the assistive options. Cyclistic users are more likely to ride for leisure, but about 30% use them to
+commute to work each day.
+* **Lily Moreno:** The director of marketing and your manager. Moreno is responsible for the development of campaigns
+and initiatives to promote the bike-share program. These may include email, social media, and other channels.
+* **Cyclistic marketing analytics team:** A team of data analysts who are responsible for collecting, analyzing, and
+reporting data that helps guide Cyclistic marketing strategy. You joined this team six months ago and have been busy
+learning about Cyclistic’s mission and business goals — as well as how you, as a junior data analyst, can help Cyclistic
+achieve them.
+* **Cyclistic executive team:** The notoriously detail-oriented executive team will decide whether to approve the
+recommended marketing program.
+
+I'll be following the six phases of data analysis: 
+
+* Ask
+* Prepare
+* Process 
+* Analyze
+* Share
+* Act
+
+# Ask
+
+*In this phase, we define the problem to be solved and make sure to understand the stakeholder expectations.*
+
+The problem of this case study is to find out **How do annual members and casual riders use Cyclistic bikes differently?**
+
+The stakeholder expectation is to **Design a new marketing strategy to convert casual riders into annual members.** 
+
+# Prepare
+
+*In this phase we will collect and store data then use for upcomming analysis process.*
+
+*Identify which kinds of data are most useful for solving a particular problem.*
+
+The data can be downloaded at \textcolor{blue}{}[divvy_trip](https://divvy-tripdata.s3.amazonaws.com/index.html)
+
+I will use the most recent year of data based on my current time.
+The data time frame is from **1/2022 to 12/2022**. The data is separated by each month in each file.
+
+This data is suitable for solving this business problem because it contains insights into riders' patterns of behavior.
+
+## Load data 
+
+First, we will load the package needed for the data analysis process.
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse) # data manipulation, exploration and visualization package
+library(skimr) # for checking the structure of the data
+library(hydroTSM) # for converting date to seasons
+```
+
+Then we load each file to it's respective month.
+
+```{r}
+M1 <- read.csv('F:\\case\\202201-divvy-tripdata.csv')
+M2 <- read.csv('F:\\case\\202202-divvy-tripdata.csv')
+M3 <- read.csv('F:\\case\\202203-divvy-tripdata.csv')
+M4 <- read.csv('F:\\case\\202204-divvy-tripdata.csv')
+M5 <- read.csv('F:\\case\\202205-divvy-tripdata.csv')
+M6 <- read.csv('F:\\case\\202206-divvy-tripdata.csv')
+M7 <- read.csv('F:\\case\\202207-divvy-tripdata.csv')
+M8 <- read.csv('F:\\case\\202208-divvy-tripdata.csv')
+M9 <- read.csv('F:\\case\\202209-divvy-tripdata.csv')
+M10 <- read.csv('F:\\case\\202210-divvy-tripdata.csv')
+M11 <- read.csv('F:\\case\\202211-divvy-tripdata.csv')
+M12 <- read.csv('F:\\case\\202212-divvy-tripdata.csv')
+```
+
+
+We then check for the column names if they are matched to each other.
+```{r}
+# Create a list of month
+month_list <- list()
+for (i in 2:12){
+  month_list <- append(month_list, paste('M', i, sep = ""))
+}
+# Iterate through the list, then check if the variable exists in the column names of the first month.
+for (i in month_list){
+  a <- c(colnames(eval(parse(text = i))))
+  for (j in a){
+    if(!(j %in% colnames(M1))){
+      print(j)
+    }
+  }
+}
+
+```
+
+**\textcolor{orange}{All the columns names of everymonth matched each other}**
+
+Next We combine every month to a single dataframe
+
+
+```{r}
+data_combined <- rbind(M1, M2, M3, M4, M5, M6, M7,M8, M9, M10, M11, M12)
+colnames(data_combined)
+```
+We only take the useful variables and exclude the rest. Change irrelevant data type(Char data type to the Date data type).
+
+```{r}
+data_combined <- select(data_combined, -c(ride_id, start_station_id, end_station_id, start_lat, start_lng, end_lat, end_lng))
+data_combined <- mutate(data_combined, started_at = as.POSIXct(started_at, format = "%Y-%m-%d %H:%M:%S"), 
+                        ended_at = as.POSIXct(ended_at, format = "%Y-%m-%d %H:%M:%S"))
+colnames(data_combined)
+```
+
+Dimensions of the dataframe
+
+```{r}
+dim(data_combined)
+```
+
+# Process
+
+*We will find and eliminate any error and inaccuracy in the data.*
+
+
+Add new columns(date, day, month, year, day of the week, season, ride_length)
+
+
+```{r}
+data_processed <- data_combined
+data_processed$date <- as.Date(data_processed$started_at)
+data_processed$day <- format(as.Date(data_processed$date), '%d')
+data_processed$month <- format(as.Date(data_processed$date), '%m')
+data_processed$year <- format(as.Date(data_processed$date), '%Y')
+data_processed$day_of_the_week <- format(as.Date(data_processed$date), '%A')
+data_processed$season <- time2season(as.Date(data_processed$date), out.fmt = "seasons")
+```
+
+
+```{r}
+data_processed$ride_length <- difftime(data_processed$ended_at,data_processed$started_at, units = 'mins')
+data_processed$ride_length <- round(data_processed$ride_length, digits = 1)
+```
+
+Change ride_length data type to numeric.
+
+```{r}
+data_processed$ride_length <- as.numeric(as.character(data_processed$ride_length))
+```
+
+
+
+We will be cleaning data next. We remove rows with ride_length below or equal to 0.
+
+
+```{r}
+data_processed <- data_processed[!(data_processed$ride_length <= 0),]
+```
+
+
+
+```{r}
+skim_without_charts(data_combined)
+```
+
+
+```{r}
+summary(data_processed)
+```
+
+```{r}
+nrow(filter(data_processed, data_processed$start_station_name == ''))
+```
+
+
+```{r eval=FALSE, include=FALSE}
+#write.csv(data_processed, "F:\\case\\data_processed.csv", row.names=FALSE)
+```
+
+```{r}
+summary(data_processed$ride_length)
+```
+
+
+Calculate mean by member casual
+
+```{r}
+
+data_processed %>%
+  group_by(member_casual) %>%
+  summarise(mean = mean(ride_length))
+```
+```{r}
+nrow(filter(data_processed, data_processed$member_casual == 'casual'))/nrow(data_processed)
+nrow(filter(data_processed, data_processed$member_casual == 'member'))/nrow(data_processed)
+```
+# Analyze
+
+*For this phase we will be using tools to transform and organize information so we can draw useful information/conclusion.*
+
+We can use R to visualize data and transform it in any way we like. But I would like to use Tableau as practice because it is also part of the course and I want to make use of every tool I was taught.
+
+
+![](F:\case\Sheet1.png)
+
+
+![](F:\case\Sheet2.png)
+
+![](F:\case\Sheet3.png)
+
+![](F:\case\Sheet4.png)
+
+![](F:\case\Sheet6.png)
+
+![](F:\case\Sheet5.png)
+
+For the Tableau Dashboard you can visit [Here](https://public.tableau.com/views/Book1_16750748951800/Dashboard1?:language=en-US&:display_count=n&:origin=viz_share_link)
+
+After visualization, we can infer some information:
+
+*  Members take **59%** of total rides. 
+* The most **popular bike types** are classic and electric. For casual riders, they prefer docked bikes more than member riders.
+* Riders **ride the most** on **Saturday**. Member riders ride equally throughout the weekdays with slight increase in mid weekdays. Casual riders ride equally on weekdays and more on weekends.
+* **Summer** is the **most busy** season for both riders type and **Winter** is the **least busy** season for both riders type.
+
+
+# Share
+
+*We will interpret result and share with others to help stakeholders making data-driven-decision*
+
+We will demonstrate and make a presentation to the stakeholders to deliver our findings in order to help them make a decision on the problem.
+
+# Act
+
+* To turn casual riders to member, we can make discount on the time when riders ride the most like Summer or on the weekend.
+* Show them the perks of becoming a member, customize the discount and membership program for their specific riding habits.
