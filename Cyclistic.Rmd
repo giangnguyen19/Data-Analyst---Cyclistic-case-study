@@ -252,5 +252,5 @@ We will demonstrate and make a presentation to the stakeholders to deliver our f
 
 # Act
 
-* To turn casual riders to member, we can make discount on the time when riders ride the most like Summer or on the weekend.
-* Show them the perks of becoming a member, customize the discount and membership program for their specific riding habits.
+* To turn casual riders into members, we can make discounts on the time when riders ride the most like Summer or on the weekend.
+* Show them the perks of becoming a member, and customize the discount and membership program for their specific riding habits.
